@@ -1,0 +1,84 @@
+@use '@/styles/variables.scss' as *;
+
+.stepContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 0;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.stepCircle {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-round;
+  background: $color-bg-hover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-sm;
+  transition: all $transition-base;
+}
+
+.completed {
+  background: $color-primary;
+}
+
+.active {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  box-shadow: 0 4rpx 12rpx rgba(0, 168, 150, 0.3);
+}
+
+.stepNumber {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-text-tertiary;
+}
+
+.completed .stepNumber,
+.active .stepNumber {
+  color: $color-text-white;
+}
+
+.checkIcon {
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-bold;
+}
+
+.stepTitle {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  text-align: center;
+  transition: color $transition-base;
+}
+
+.activeTitle {
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.stepLine {
+  flex: 1;
+  height: 4rpx;
+  background: $color-bg-hover;
+  margin: 0 $spacing-sm 32rpx;
+  border-radius: $radius-xs;
+  transition: background $transition-base;
+}
+
+.lineCompleted {
+  background: $color-primary;
+}

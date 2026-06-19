@@ -1,0 +1,318 @@
+@use '@/styles/variables.scss' as *;
+
+.pageContainer {
+  min-height: 100vh;
+  padding: $spacing-lg $page-padding $spacing-xl;
+  box-sizing: border-box;
+}
+
+.summaryCard {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+  color: $color-text-white;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.summaryLabel {
+  font-size: $font-size-md;
+  opacity: 0.9;
+}
+
+.summaryValue {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+}
+
+.summaryTotal {
+  font-size: 56rpx;
+  font-weight: $font-weight-bold;
+}
+
+.summaryDuration {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+}
+
+.sectionCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.sectionIcon {
+  font-size: $font-size-lg;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.infoLabel {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+}
+
+.infoValue {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.conditionTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.conditionTag {
+  padding: 8rpx 20rpx;
+  background: rgba(0, 168, 150, 0.1);
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.serviceItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.serviceDeclined {
+  background: $color-declined-bg;
+  border-radius: $radius-sm;
+  padding: $spacing-md;
+  margin: $spacing-sm 0;
+  border-bottom: none;
+}
+
+.serviceLeft {
+  flex: 1;
+}
+
+.serviceName {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.serviceDeclinedLabel {
+  padding: 2rpx 12rpx;
+  background: $color-declined-bg;
+  color: $color-declined-text;
+  font-size: $font-size-xs;
+  border-radius: $radius-xs;
+  border: 1rpx solid $color-declined-text;
+}
+
+.serviceDesc {
+  font-size: $font-size-xs;
+  color: $color-declined-text;
+  margin-top: 4rpx;
+}
+
+.servicePrice {
+  font-size: $font-size-md;
+  color: $color-price;
+  font-weight: $font-weight-semibold;
+}
+
+.servicePriceInactive {
+  color: $color-text-tertiary;
+  text-decoration: line-through;
+}
+
+.noticeList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.noticeItem {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+}
+
+.noticeDot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: $radius-round;
+  background: $color-primary;
+  margin-top: 12rpx;
+  flex-shrink: 0;
+}
+
+.noticeText {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  line-height: 1.6;
+}
+
+.packageCompare {
+  display: flex;
+  gap: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.packageCompareItem {
+  flex: 1;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  text-align: center;
+  border: 2rpx solid transparent;
+}
+
+.packageCompareBasic {
+  background: $color-basic-package;
+}
+
+.packageComparePremium {
+  background: $color-premium-package;
+}
+
+.packageCompareSelected {
+  border-color: $color-primary;
+}
+
+.packageCompareName {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-xs;
+}
+
+.packageComparePrice {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-price;
+}
+
+.packageCompareTag {
+  display: inline-block;
+  margin-top: $spacing-xs;
+  padding: 2rpx 12rpx;
+  background: $color-primary;
+  color: $color-text-white;
+  font-size: $font-size-xs;
+  border-radius: $radius-xs;
+}
+
+.sendInfo {
+  display: flex;
+  gap: $spacing-lg;
+}
+
+.sendInfoItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.sendInfoIcon {
+  font-size: $font-size-lg;
+}
+
+.sendInfoText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.sendInfoActive {
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.statusBadge {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.statusDraft {
+  background: rgba(134, 144, 156, 0.15);
+  color: $color-text-tertiary;
+}
+
+.statusSent {
+  background: rgba(22, 93, 255, 0.15);
+  color: $color-info;
+}
+
+.statusConfirmed {
+  background: rgba(0, 180, 42, 0.15);
+  color: $color-success;
+}
+
+.statusCompleted {
+  background: rgba(0, 168, 150, 0.15);
+  color: $color-primary;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl * 2 $spacing-lg;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  margin-bottom: $spacing-lg;
+}
+
+.emptyTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.emptyDesc {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+}

@@ -1,0 +1,192 @@
+@use '@/styles/variables.scss' as *;
+
+.packageCard {
+  position: relative;
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-md;
+  border: 3rpx solid transparent;
+  transition: all $transition-base;
+  overflow: hidden;
+
+  &:active {
+    transform: scale(0.99);
+  }
+}
+
+.selected {
+  border-color: $color-primary;
+  box-shadow: 0 6rpx 24rpx rgba(0, 168, 150, 0.15);
+}
+
+.basic {
+  background: linear-gradient(180deg, $color-basic-package 0%, $color-bg-card 30%);
+}
+
+.premium {
+  background: linear-gradient(180deg, $color-premium-package 0%, $color-bg-card 30%);
+}
+
+.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.packageBadge {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+}
+
+.basicBadge {
+  background: rgba(0, 168, 150, 0.15);
+}
+
+.premiumBadge {
+  background: rgba(255, 125, 0, 0.15);
+}
+
+.badgeText {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+}
+
+.basic .badgeText {
+  color: $color-primary;
+}
+
+.premium .badgeText {
+  color: $color-warning;
+}
+
+.packageName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.packagePrice {
+  display: flex;
+  align-items: baseline;
+}
+
+.priceSymbol {
+  font-size: $font-size-md;
+  color: $color-price;
+  font-weight: $font-weight-semibold;
+}
+
+.priceValue {
+  font-size: 48rpx;
+  font-weight: $font-weight-bold;
+  color: $color-price;
+  line-height: 1;
+}
+
+.packageDesc {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-md;
+  line-height: 1.5;
+}
+
+.highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.highlightTag {
+  padding: 6rpx 16rpx;
+  background: rgba(0, 168, 150, 0.08);
+  border-radius: $radius-sm;
+}
+
+.highlightText {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.divider {
+  height: 1rpx;
+  background: $color-divider;
+  margin: $spacing-md 0;
+}
+
+.servicesList {
+  margin-bottom: $spacing-md;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.durationInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.durationLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.durationValue {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.selectedIndicator {
+  padding: $spacing-xs $spacing-md;
+  background: $color-primary;
+  border-radius: $radius-button;
+}
+
+.selectedText {
+  font-size: $font-size-xs;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+}
+
+.cornerCheck {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, transparent 50%, $color-primary 50%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 8rpx;
+}
+
+.cornerCheckIcon {
+  color: $color-text-white;
+  font-size: 28rpx;
+  font-weight: $font-weight-bold;
+  transform: rotate(45deg);
+  transform-origin: center;
+}

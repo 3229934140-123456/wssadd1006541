@@ -1,0 +1,129 @@
+@use '@/styles/variables.scss' as *;
+
+.serviceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+  transition: all $transition-base;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.selected {
+  background: transparent;
+}
+
+.declined {
+  opacity: 0.7;
+  background: $color-declined-bg;
+  border-radius: $radius-sm;
+  padding: $spacing-md;
+  margin: $spacing-sm 0;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.serviceLeft {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.checkbox {
+  width: 44rpx;
+  height: 44rpx;
+  border: 3rpx solid $color-border;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+  transition: all $transition-base;
+}
+
+.checked {
+  background: $color-primary;
+  border-color: $color-primary;
+}
+
+.declinedCheckbox {
+  background: $color-declined-bg;
+  border-color: $color-declined-text;
+}
+
+.checkIcon {
+  color: $color-text-white;
+  font-size: 24rpx;
+  font-weight: $font-weight-bold;
+}
+
+.declineIcon {
+  color: $color-declined-text;
+  font-size: 24rpx;
+  font-weight: $font-weight-bold;
+}
+
+.serviceInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.serviceName {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.declinedReason {
+  font-size: $font-size-xs;
+  color: $color-declined-text;
+  margin-top: 4rpx;
+}
+
+.serviceRight {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.servicePrice {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-price;
+}
+
+.inactive {
+  color: $color-text-tertiary;
+  text-decoration: line-through;
+}
+
+.declineBtn {
+  padding: $spacing-xs $spacing-md;
+  background: $color-declined-bg;
+  border-radius: $radius-button;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.96);
+  }
+}
+
+.declineText {
+  font-size: $font-size-xs;
+  color: $color-declined-text;
+  font-weight: $font-weight-medium;
+}
