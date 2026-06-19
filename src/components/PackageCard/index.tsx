@@ -12,7 +12,9 @@ interface PackageCardProps {
   onSelect: () => void;
   onToggleService?: (serviceId: string) => void;
   onDeclineService?: (serviceId: string) => void;
+  onRestoreService?: (serviceId: string) => void;
   showActions?: boolean;
+  showRestore?: boolean;
   disabled?: boolean;
 }
 
@@ -22,7 +24,9 @@ const PackageCard: React.FC<PackageCardProps> = ({
   onSelect,
   onToggleService,
   onDeclineService,
+  onRestoreService,
   showActions = true,
+  showRestore = false,
   disabled = false,
 }) => {
   const isBasic = pkg.type === 'basic';
@@ -69,6 +73,8 @@ const PackageCard: React.FC<PackageCardProps> = ({
             service={service}
             onToggle={showActions && onToggleService ? () => onToggleService(service.serviceId) : undefined}
             onDecline={showActions && onDeclineService ? () => onDeclineService(service.serviceId) : undefined}
+            onRestore={showRestore && onRestoreService ? () => onRestoreService(service.serviceId) : undefined}
+            showRestore={showRestore}
             disabled={disabled || !selected}
           />
         ))}

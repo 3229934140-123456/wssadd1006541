@@ -93,6 +93,19 @@
   color: $color-text-tertiary;
 }
 
+.hintCard {
+  background: rgba(0, 168, 150, 0.08);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.hintText {
+  font-size: $font-size-sm;
+  color: $color-primary-dark;
+  line-height: 1.6;
+}
+
 .bottomActionBar {
   position: fixed;
   bottom: 0;

@@ -17,7 +17,7 @@ export interface OralCondition {
 }
 
 // 服务项目类型
-export type ServiceType = 'ultrasonic' | 'airflow' | 'polishing' | 'medication';
+export type ServiceType = 'ultrasonic' | 'airflow' | 'polishing' | 'medication' | 'observation';
 
 // 服务项目
 export interface ServiceItem {
@@ -39,6 +39,7 @@ export interface PackageService {
   selected: boolean;
   declined: boolean;
   declinedReason?: string;
+  declinedAt?: string;
 }
 
 // 套餐类型
@@ -63,6 +64,7 @@ export interface SpeechTemplate {
   difference: string;
   declinedService: string;
   postCare: string[];
+  observationIntro: string;
 }
 
 // 患者信息
@@ -70,6 +72,31 @@ export interface PatientInfo {
   name?: string;
   phone?: string;
   age?: number;
+}
+
+// 发送状态
+export type SendStatus = 'pending' | 'sending' | 'success' | 'failed';
+
+// 发送记录
+export interface SendRecord {
+  target: 'reception' | 'patient';
+  status: SendStatus;
+  sentAt?: string;
+  failedReason?: string;
+  retryCount: number;
+}
+
+// 患者端方案摘要
+export interface PatientSummary {
+  patientName: string;
+  packageName: string;
+  totalPrice: number;
+  totalDuration: number;
+  services: { name: string; price: number }[];
+  declinedServices: { name: string; reason: string }[];
+  postCare: string[];
+  doctorName: string;
+  createdAt: string;
 }
 
 // 方案记录
@@ -87,7 +114,23 @@ export interface PlanRecord {
   declinedServices: PackageService[];
   createdAt: string;
   status: 'draft' | 'sent' | 'confirmed' | 'completed';
-  sentTo?: ('reception' | 'patient')[];
+  sendRecords: {
+    reception: SendRecord;
+    patient: SendRecord;
+  };
+  patientSummary?: PatientSummary;
+}
+
+// 全局状态持久化数据
+export interface PersistedState {
+  historyRecords: PlanRecord[];
+  currentDraft: {
+    patientInfo: PatientInfo;
+    oralCondition: OralCondition;
+    packages: { basic: Package; premium: Package } | null;
+    selectedPackage: PackageType;
+    currentStep: number;
+  } | null;
 }
 
 // 步骤

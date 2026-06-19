@@ -1,5 +1,18 @@
 import { PlanRecord } from '../types';
 
+const createSendRecord = (
+  target: 'reception' | 'patient',
+  status: 'pending' | 'sending' | 'success' | 'failed',
+  sentAt?: string,
+  failedReason?: string
+) => ({
+  target,
+  status,
+  sentAt,
+  failedReason,
+  retryCount: status === 'failed' ? 1 : 0,
+});
+
 export const mockHistoryRecords: PlanRecord[] = [
   {
     id: 'rec001',
@@ -52,7 +65,10 @@ export const mockHistoryRecords: PlanRecord[] = [
     declinedServices: [],
     createdAt: '2026-06-15 14:30',
     status: 'completed',
-    sentTo: ['reception', 'patient'],
+    sendRecords: {
+      reception: createSendRecord('reception', 'success', '2026-06-15T14:31:00.000Z'),
+      patient: createSendRecord('patient', 'success', '2026-06-15T14:31:30.000Z'),
+    },
   },
   {
     id: 'rec002',
@@ -75,7 +91,7 @@ export const mockHistoryRecords: PlanRecord[] = [
         description: '基础洁牙，解决核心问题',
         services: [
           { serviceId: 'ultrasonic', serviceName: '超声洁治', price: 120, duration: 20, selected: true, declined: false },
-          { serviceId: 'airflow', serviceName: '喷砂', price: 150, duration: 15, selected: false, declined: true, declinedReason: '患者暂不考虑' },
+          { serviceId: 'airflow', serviceName: '喷砂', price: 150, duration: 15, selected: false, declined: true, declinedReason: '价格太贵，暂时不考虑', declinedAt: '2026-06-14T10:16:00.000Z' },
           { serviceId: 'polishing', serviceName: '抛光', price: 80, duration: 10, selected: true, declined: false },
           { serviceId: 'medication', serviceName: '上药护理', price: 60, duration: 5, selected: false, declined: false },
         ],
@@ -103,11 +119,14 @@ export const mockHistoryRecords: PlanRecord[] = [
     totalPrice: 200,
     totalDuration: 30,
     declinedServices: [
-      { serviceId: 'airflow', serviceName: '喷砂', price: 150, duration: 15, selected: false, declined: true, declinedReason: '患者暂不考虑' },
+      { serviceId: 'airflow', serviceName: '喷砂', price: 150, duration: 15, selected: false, declined: true, declinedReason: '价格太贵，暂时不考虑', declinedAt: '2026-06-14T10:16:00.000Z' },
     ],
     createdAt: '2026-06-14 10:15',
     status: 'completed',
-    sentTo: ['reception'],
+    sendRecords: {
+      reception: createSendRecord('reception', 'success', '2026-06-14T10:17:00.000Z'),
+      patient: createSendRecord('patient', 'failed', undefined, '患者手机未授权'),
+    },
   },
   {
     id: 'rec003',
@@ -160,7 +179,10 @@ export const mockHistoryRecords: PlanRecord[] = [
     declinedServices: [],
     createdAt: '2026-06-12 15:45',
     status: 'confirmed',
-    sentTo: ['reception', 'patient'],
+    sendRecords: {
+      reception: createSendRecord('reception', 'success', '2026-06-12T15:46:00.000Z'),
+      patient: createSendRecord('patient', 'success', '2026-06-12T15:46:30.000Z'),
+    },
   },
   {
     id: 'rec004',
@@ -185,7 +207,7 @@ export const mockHistoryRecords: PlanRecord[] = [
           { serviceId: 'ultrasonic', serviceName: '超声洁治', price: 120, duration: 20, selected: true, declined: false },
           { serviceId: 'airflow', serviceName: '喷砂', price: 150, duration: 15, selected: false, declined: false },
           { serviceId: 'polishing', serviceName: '抛光', price: 80, duration: 10, selected: true, declined: false },
-          { serviceId: 'medication', serviceName: '上药护理', price: 60, duration: 5, selected: false, declined: true, declinedReason: '患者拒绝' },
+          { serviceId: 'medication', serviceName: '上药护理', price: 60, duration: 5, selected: false, declined: true, declinedReason: '有点害怕，想再考虑一下', declinedAt: '2026-06-10T09:32:00.000Z' },
         ],
         totalPrice: 200,
         totalDuration: 30,
@@ -211,10 +233,66 @@ export const mockHistoryRecords: PlanRecord[] = [
     totalPrice: 200,
     totalDuration: 30,
     declinedServices: [
-      { serviceId: 'medication', serviceName: '上药护理', price: 60, duration: 5, selected: false, declined: true, declinedReason: '患者拒绝' },
+      { serviceId: 'medication', serviceName: '上药护理', price: 60, duration: 5, selected: false, declined: true, declinedReason: '有点害怕，想再考虑一下', declinedAt: '2026-06-10T09:32:00.000Z' },
     ],
     createdAt: '2026-06-10 09:30',
     status: 'completed',
-    sentTo: ['reception'],
+    sendRecords: {
+      reception: createSendRecord('reception', 'success', '2026-06-10T09:33:00.000Z'),
+      patient: createSendRecord('patient', 'pending'),
+    },
+  },
+  {
+    id: 'rec005',
+    patientInfo: {
+      name: '陈小姐',
+      phone: '135****7788',
+      age: 25,
+    },
+    oralCondition: {
+      tartarLevel: 'none',
+      pigmentationLevel: 'mild',
+      bleedingLevel: 'none',
+      isFirstTime: true,
+    },
+    selectedPackage: 'basic',
+    packages: {
+      basic: {
+        type: 'basic',
+        name: '观察护理套餐',
+        description: '基础检查，定期观察',
+        services: [
+          { serviceId: 'observation', serviceName: '口腔观察', price: 0, duration: 5, selected: true, declined: false },
+          { serviceId: 'polishing', serviceName: '抛光', price: 80, duration: 10, selected: true, declined: false },
+        ],
+        totalPrice: 80,
+        totalDuration: 15,
+        speechScript: '',
+        highlights: ['口腔基础检查', '首次洁牙指导', '定期复查建议'],
+      },
+      premium: {
+        type: 'premium',
+        name: '舒适护理套餐',
+        description: '全面护理，美观舒适',
+        services: [
+          { serviceId: 'observation', serviceName: '口腔观察', price: 0, duration: 5, selected: true, declined: false },
+          { serviceId: 'airflow', serviceName: '喷砂', price: 150, duration: 15, selected: true, declined: false },
+          { serviceId: 'polishing', serviceName: '抛光', price: 80, duration: 10, selected: true, declined: false },
+        ],
+        totalPrice: 230,
+        totalDuration: 30,
+        speechScript: '',
+        highlights: ['口腔全面检查', '喷砂去除色素', '牙面抛光护理'],
+      },
+    },
+    totalPrice: 80,
+    totalDuration: 15,
+    declinedServices: [],
+    createdAt: '2026-06-08 16:20',
+    status: 'sent',
+    sendRecords: {
+      reception: createSendRecord('reception', 'success', '2026-06-08T16:21:00.000Z'),
+      patient: createSendRecord('patient', 'success', '2026-06-08T16:21:30.000Z'),
+    },
   },
 ];

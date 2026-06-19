@@ -5,7 +5,7 @@ import { usePackage } from '../../store/PackageContext';
 import StepIndicator from '../../components/StepIndicator';
 import PackageCard from '../../components/PackageCard';
 import SpeechBubble from '../../components/SpeechBubble';
-import { speechTemplates, getDeclinedScript } from '../../data/speechScripts';
+import { speechTemplates, getDeclinedScript, getDeclinedReasonOptions } from '../../data/speechScripts';
 import { tartarLevelOptions, pigmentationLevelOptions, bleedingLevelOptions } from '../../data/oralConditions';
 import { PackageType, PackageService } from '../../types';
 import styles from './index.module.scss';
@@ -25,6 +25,7 @@ const PackagePage: React.FC = () => {
     setSelectedPackage,
     toggleService,
     declineService,
+    restoreService,
     setCurrentStep,
   } = usePackage();
 
@@ -60,16 +61,36 @@ const PackagePage: React.FC = () => {
     if (!pkg) return;
 
     const service = pkg.services.find(s => s.serviceId === serviceId) as PackageService;
+    if (service.declined) {
+      Taro.showModal({
+        title: '已记录为拒绝项',
+        content: `${service.serviceName} 已标记为"已告知未选择"，原因：${service.declinedReason || '未说明'}。\n\n是否恢复为已选择？`,
+        confirmText: '恢复选择',
+        cancelText: '保持拒绝',
+        success: (res) => {
+          if (res.confirm) {
+            restoreService(packageType, serviceId);
+            Taro.showToast({
+              title: '已恢复',
+              icon: 'success',
+              duration: 1500,
+            });
+          }
+        },
+      });
+      return;
+    }
+
+    const reasonOptions = getDeclinedReasonOptions();
     
     Taro.showActionSheet({
-      itemList: ['患者暂不考虑', '患者拒绝', '预算有限', '其他原因'],
+      itemList: reasonOptions.map(o => o.label),
       success: (res) => {
-        const reasons = ['患者暂不考虑', '患者拒绝', '预算有限', '其他原因'];
-        const reason = reasons[res.tapIndex];
+        const reason = reasonOptions[res.tapIndex].value;
         
         declineService(packageType, serviceId, reason);
         
-        const script = getDeclinedScript(service.serviceName);
+        const script = getDeclinedScript(service.serviceName, reason);
         Taro.showModal({
           title: '已记录，建议话术',
           content: script,
@@ -164,7 +185,7 @@ const PackagePage: React.FC = () => {
       <View className={styles.priceNote}>
         <Text className={styles.priceNoteIcon}>💡</Text>
         <Text className={styles.priceNoteText}>
-          点击服务项目可调整选择；点击"取消"可标记患者拒绝项，系统将自动记录
+          点击勾选框可调整选择；取消勾选将自动记录为"已告知未选择"；点击"拒绝"按钮可选择具体原因
         </Text>
       </View>
 
@@ -175,6 +196,8 @@ const PackagePage: React.FC = () => {
           onSelect={() => setSelectedPackage('basic')}
           onToggleService={(serviceId) => toggleService('basic', serviceId)}
           onDeclineService={(serviceId) => handleDecline('basic', serviceId)}
+          onRestoreService={(serviceId) => restoreService('basic', serviceId)}
+          showRestore={true}
         />
         <PackageCard
           pkg={packages.premium}
@@ -182,6 +205,8 @@ const PackagePage: React.FC = () => {
           onSelect={() => setSelectedPackage('premium')}
           onToggleService={(serviceId) => toggleService('premium', serviceId)}
           onDeclineService={(serviceId) => handleDecline('premium', serviceId)}
+          onRestoreService={(serviceId) => restoreService('premium', serviceId)}
+          showRestore={true}
         />
       </View>
 

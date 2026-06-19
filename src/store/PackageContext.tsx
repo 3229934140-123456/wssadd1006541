@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import Taro from '@tarojs/taro';
 import {
   OralCondition,
@@ -7,10 +7,21 @@ import {
   PatientInfo,
   PlanRecord,
   PackageService,
+  SendStatus,
+  SendRecord,
+  PersistedState,
 } from '../types';
-import { calculatePackages, recalculatePackage, generateId } from '../utils/packageCalculator';
+import { 
+  calculatePackages, 
+  recalculatePackage, 
+  generateId, 
+  generatePatientSummary,
+  isValidCondition 
+} from '../utils/packageCalculator';
 import { mockHistoryRecords } from '../data/historyRecords';
 import dayjs from 'dayjs';
+
+const STORAGE_KEY = 'dental_package_state_v1';
 
 interface PackageContextType {
   patientInfo: PatientInfo;
@@ -18,17 +29,26 @@ interface PackageContextType {
   oralCondition: OralCondition;
   setOralCondition: (condition: OralCondition) => void;
   packages: { basic: Package; premium: Package } | null;
-  calculatePackages: () => void;
+  calculatePackages: () => boolean;
   selectedPackage: PackageType;
   setSelectedPackage: (type: PackageType) => void;
   toggleService: (packageType: PackageType, serviceId: string) => void;
   declineService: (packageType: PackageType, serviceId: string, reason: string) => void;
+  restoreService: (packageType: PackageType, serviceId: string) => void;
   historyRecords: PlanRecord[];
-  saveRecord: (sendTo: ('reception' | 'patient')[]) => PlanRecord;
+  filteredRecords: PlanRecord[];
+  searchKeyword: string;
+  setSearchKeyword: (keyword: string) => void;
+  createRecord: () => PlanRecord;
+  sendToTarget: (recordId: string, target: 'reception' | 'patient') => Promise<boolean>;
+  retrySend: (recordId: string, target: 'reception' | 'patient') => Promise<boolean>;
+  updateRecordStatus: (recordId: string, status: PlanRecord['status']) => void;
   currentStep: number;
   setCurrentStep: (step: number) => void;
   resetAll: () => void;
-  getCurrentRecord: () => PlanRecord | null;
+  getRecordById: (id: string) => PlanRecord | undefined;
+  getSendStatus: (record: PlanRecord, target: 'reception' | 'patient') => SendStatus;
+  getSendTime: (record: PlanRecord, target: 'reception' | 'patient') => string;
 }
 
 const defaultOralCondition: OralCondition = {
@@ -38,21 +58,100 @@ const defaultOralCondition: OralCondition = {
   isFirstTime: false,
 };
 
+const defaultSendRecord: SendRecord = {
+  target: 'reception',
+  status: 'pending',
+  retryCount: 0,
+};
+
 const PackageContext = createContext<PackageContextType | undefined>(undefined);
+
+const loadFromStorage = (): PersistedState | null => {
+  try {
+    const data = Taro.getStorageSync(STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('[PackageContext] Failed to load from storage:', e);
+  }
+  return null;
+};
+
+const saveToStorage = (state: PersistedState) => {
+  try {
+    Taro.setStorageSync(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('[PackageContext] Failed to save to storage:', e);
+  }
+};
 
 export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [patientInfo, setPatientInfo] = useState<PatientInfo>({});
   const [oralCondition, setOralCondition] = useState<OralCondition>(defaultOralCondition);
   const [packages, setPackages] = useState<{ basic: Package; premium: Package } | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<PackageType>('basic');
-  const [historyRecords, setHistoryRecords] = useState<PlanRecord[]>(mockHistoryRecords);
+  const [historyRecords, setHistoryRecords] = useState<PlanRecord[]>([]);
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [searchKeyword, setSearchKeyword] = useState<string>('');
 
-  const handleCalculatePackages = useCallback(() => {
+  useEffect(() => {
+    const saved = loadFromStorage();
+    if (saved) {
+      console.log('[PackageContext] Loaded saved state:', saved);
+      setHistoryRecords(saved.historyRecords.length > 0 ? saved.historyRecords : mockHistoryRecords);
+      if (saved.currentDraft) {
+        setPatientInfo(saved.currentDraft.patientInfo);
+        setOralCondition(saved.currentDraft.oralCondition);
+        setPackages(saved.currentDraft.packages);
+        setSelectedPackage(saved.currentDraft.selectedPackage);
+        setCurrentStep(saved.currentDraft.currentStep);
+      }
+    } else {
+      setHistoryRecords(mockHistoryRecords);
+    }
+  }, []);
+
+  const persistState = useCallback(() => {
+    const state: PersistedState = {
+      historyRecords,
+      currentDraft: packages ? {
+        patientInfo,
+        oralCondition,
+        packages,
+        selectedPackage,
+        currentStep,
+      } : null,
+    };
+    saveToStorage(state);
+  }, [historyRecords, patientInfo, oralCondition, packages, selectedPackage, currentStep]);
+
+  useEffect(() => {
+    persistState();
+  }, [persistState]);
+
+  const filteredRecords = historyRecords.filter(record => {
+    if (!searchKeyword.trim()) return true;
+    const keyword = searchKeyword.toLowerCase().trim();
+    const name = record.patientInfo.name?.toLowerCase() || '';
+    const phone = record.patientInfo.phone || '';
+    return name.includes(keyword) || phone.includes(keyword);
+  });
+
+  const handleCalculatePackages = useCallback((): boolean => {
+    if (!isValidCondition(oralCondition)) {
+      Taro.showToast({
+        title: '请至少选择一项口腔情况',
+        icon: 'none',
+        duration: 2000,
+      });
+      return false;
+    }
     console.log('[PackageContext] Calculating packages with condition:', oralCondition);
     const result = calculatePackages(oralCondition);
     setPackages(result);
     console.log('[PackageContext] Packages calculated:', result);
+    return true;
   }, [oralCondition]);
 
   const toggleService = useCallback((packageType: PackageType, serviceId: string) => {
@@ -65,8 +164,20 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       const targetPkg = prev[packageType];
       const updatedServices = targetPkg.services.map((s) => {
-        if (s.serviceId === serviceId && !s.declined) {
-          return { ...s, selected: !s.selected };
+        if (s.serviceId === serviceId) {
+          if (s.declined) {
+            return s;
+          }
+          if (s.selected) {
+            return { 
+              ...s, 
+              selected: false, 
+              declined: true, 
+              declinedReason: '患者取消选择',
+              declinedAt: new Date().toISOString(),
+            };
+          }
+          return { ...s, selected: true };
         }
         return s;
       });
@@ -91,7 +202,13 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
       const targetPkg = prev[packageType];
       const updatedServices = targetPkg.services.map((s) => {
         if (s.serviceId === serviceId) {
-          return { ...s, selected: false, declined: true, declinedReason: reason };
+          return { 
+            ...s, 
+            selected: false, 
+            declined: true, 
+            declinedReason: reason,
+            declinedAt: new Date().toISOString(),
+          };
         }
         return s;
       });
@@ -111,13 +228,49 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   }, [packages]);
 
-  const saveRecord = useCallback((sendTo: ('reception' | 'patient')[]): PlanRecord => {
+  const restoreService = useCallback((packageType: PackageType, serviceId: string) => {
+    if (!packages) return;
+    
+    console.log('[PackageContext] Restoring service:', packageType, serviceId);
+    
+    setPackages((prev) => {
+      if (!prev) return prev;
+      
+      const targetPkg = prev[packageType];
+      const updatedServices = targetPkg.services.map((s) => {
+        if (s.serviceId === serviceId && s.declined) {
+          return { 
+            ...s, 
+            selected: true, 
+            declined: false, 
+            declinedReason: undefined,
+            declinedAt: undefined,
+          };
+        }
+        return s;
+      });
+      
+      const updatedPkg = recalculatePackage({ ...targetPkg, services: updatedServices });
+      
+      return {
+        ...prev,
+        [packageType]: updatedPkg,
+      };
+    });
+  }, [packages]);
+
+  const createRecord = useCallback((): PlanRecord => {
     if (!packages) {
       throw new Error('Packages not calculated');
     }
 
     const pkg = packages[selectedPackage];
     const declinedServices = pkg.services.filter((s) => s.declined) as PackageService[];
+    const patientSummary = generatePatientSummary(
+      patientInfo.name || '',
+      pkg,
+      declinedServices
+    );
 
     const record: PlanRecord = {
       id: generateId(),
@@ -129,16 +282,105 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
       totalDuration: pkg.totalDuration,
       declinedServices,
       createdAt: dayjs().format('YYYY-MM-DD HH:mm'),
-      status: 'sent',
-      sentTo,
+      status: 'draft',
+      sendRecords: {
+        reception: { ...defaultSendRecord, target: 'reception' },
+        patient: { ...defaultSendRecord, target: 'patient' },
+      },
+      patientSummary,
     };
 
-    console.log('[PackageContext] Saving record:', record);
+    console.log('[PackageContext] Creating record:', record);
     
     setHistoryRecords((prev) => [record, ...prev]);
     
     return record;
   }, [packages, selectedPackage, patientInfo, oralCondition]);
+
+  const performSend = async (
+    target: 'reception' | 'patient',
+    record: PlanRecord
+  ): Promise<{ success: boolean; reason?: string }> => {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const success = Math.random() > 0.1;
+    
+    if (success) {
+      return { success: true };
+    } else {
+      const reasons = ['网络连接超时', '候诊屏未在线', '患者手机未授权', '系统繁忙'];
+      return { 
+        success: false, 
+        reason: reasons[Math.floor(Math.random() * reasons.length)] 
+      };
+    }
+  };
+
+  const sendToTarget = useCallback(async (
+    recordId: string, 
+    target: 'reception' | 'patient'
+  ): Promise<boolean> => {
+    const record = historyRecords.find(r => r.id === recordId);
+    if (!record) return false;
+
+    setHistoryRecords(prev => prev.map(r => {
+      if (r.id !== recordId) return r;
+      return {
+        ...r,
+        sendRecords: {
+          ...r.sendRecords,
+          [target]: {
+            ...r.sendRecords[target],
+            status: 'sending' as SendStatus,
+          },
+        },
+      };
+    }));
+
+    const result = await performSend(target, record);
+
+    setHistoryRecords(prev => prev.map(r => {
+      if (r.id !== recordId) return r;
+      
+      const currentSendRecord = r.sendRecords[target];
+      const newSendRecord: SendRecord = {
+        ...currentSendRecord,
+        status: result.success ? 'success' : 'failed',
+        sentAt: result.success ? new Date().toISOString() : undefined,
+        failedReason: result.success ? undefined : result.reason,
+        retryCount: result.success ? currentSendRecord.retryCount : currentSendRecord.retryCount + 1,
+      };
+
+      const otherTarget = target === 'reception' ? 'patient' : 'reception';
+      const allSuccess = result.success && r.sendRecords[otherTarget].status === 'success';
+      const anySuccess = result.success || r.sendRecords[otherTarget].status === 'success';
+
+      return {
+        ...r,
+        status: anySuccess ? (allSuccess ? 'sent' : r.status) : r.status,
+        sendRecords: {
+          ...r.sendRecords,
+          [target]: newSendRecord,
+        },
+      };
+    }));
+
+    return result.success;
+  }, [historyRecords]);
+
+  const retrySend = useCallback(async (
+    recordId: string, 
+    target: 'reception' | 'patient'
+  ): Promise<boolean> => {
+    return sendToTarget(recordId, target);
+  }, [sendToTarget]);
+
+  const updateRecordStatus = useCallback((recordId: string, status: PlanRecord['status']) => {
+    setHistoryRecords(prev => prev.map(r => {
+      if (r.id !== recordId) return r;
+      return { ...r, status };
+    }));
+  }, []);
 
   const resetAll = useCallback(() => {
     console.log('[PackageContext] Resetting all state');
@@ -147,27 +389,28 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
     setPackages(null);
     setSelectedPackage('basic');
     setCurrentStep(1);
+    setSearchKeyword('');
   }, []);
 
-  const getCurrentRecord = useCallback((): PlanRecord | null => {
-    if (!packages) return null;
-    
-    const pkg = packages[selectedPackage];
-    const declinedServices = pkg.services.filter((s) => s.declined) as PackageService[];
+  const getRecordById = useCallback((id: string): PlanRecord | undefined => {
+    return historyRecords.find(r => r.id === id);
+  }, [historyRecords]);
 
-    return {
-      id: generateId(),
-      patientInfo: { ...patientInfo },
-      oralCondition: { ...oralCondition },
-      selectedPackage,
-      packages: JSON.parse(JSON.stringify(packages)),
-      totalPrice: pkg.totalPrice,
-      totalDuration: pkg.totalDuration,
-      declinedServices,
-      createdAt: dayjs().format('YYYY-MM-DD HH:mm'),
-      status: 'draft',
-    };
-  }, [packages, selectedPackage, patientInfo, oralCondition]);
+  const getSendStatus = useCallback((
+    record: PlanRecord, 
+    target: 'reception' | 'patient'
+  ): SendStatus => {
+    return record.sendRecords?.[target]?.status || 'pending';
+  }, []);
+
+  const getSendTime = useCallback((
+    record: PlanRecord, 
+    target: 'reception' | 'patient'
+  ): string => {
+    const sentAt = record.sendRecords?.[target]?.sentAt;
+    if (!sentAt) return '';
+    return dayjs(sentAt).format('MM-DD HH:mm');
+  }, []);
 
   return (
     <PackageContext.Provider
@@ -182,12 +425,21 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
         setSelectedPackage,
         toggleService,
         declineService,
+        restoreService,
         historyRecords,
-        saveRecord,
+        filteredRecords,
+        searchKeyword,
+        setSearchKeyword,
+        createRecord,
+        sendToTarget,
+        retrySend,
+        updateRecordStatus,
         currentStep,
         setCurrentStep,
         resetAll,
-        getCurrentRecord,
+        getRecordById,
+        getSendStatus,
+        getSendTime,
       }}
     >
       {children}

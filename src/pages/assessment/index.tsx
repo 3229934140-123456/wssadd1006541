@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, Text, Input, Switch, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import { usePackage } from '../../store/PackageContext';
 import StepIndicator from '../../components/StepIndicator';
 import ConditionCard from '../../components/ConditionCard';
 import { tartarLevelOptions, pigmentationLevelOptions, bleedingLevelOptions } from '../../data/oralConditions';
+import { isValidCondition } from '../../utils/packageCalculator';
 import { TartarLevel, PigmentationLevel, BleedingLevel } from '../../types';
 import styles from './index.module.scss';
 
@@ -28,10 +29,6 @@ const AssessmentPage: React.FC = () => {
 
   const [name, setName] = useState(patientInfo.name || '');
   const [phone, setPhone] = useState(patientInfo.phone || '');
-
-  const canProceed = useMemo(() => {
-    return oralCondition.tartarLevel !== 'none';
-  }, [oralCondition.tartarLevel]);
 
   const handleTartarChange = (value: string) => {
     console.log('[Assessment] Tartar level changed:', value);
@@ -66,28 +63,20 @@ const AssessmentPage: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (!canProceed) {
-      Taro.showToast({
-        title: '请至少选择牙石等级',
-        icon: 'none',
-        duration: 2000,
-      });
-      return;
-    }
-
     setPatientInfo({
       ...patientInfo,
       name: name || undefined,
       phone: phone || undefined,
     });
 
-    calculatePackages();
-    setCurrentStep(2);
-
-    console.log('[Assessment] Navigating to package page');
-    Taro.switchTab({
-      url: '/pages/package/index',
-    });
+    const success = calculatePackages();
+    if (success) {
+      setCurrentStep(2);
+      console.log('[Assessment] Navigating to package page');
+      Taro.switchTab({
+        url: '/pages/package/index',
+      });
+    }
   };
 
   const handleReset = () => {
@@ -104,6 +93,8 @@ const AssessmentPage: React.FC = () => {
       },
     });
   };
+
+  const canProceed = isValidCondition(oralCondition);
 
   return (
     <View className={styles.pageContainer}>
@@ -142,7 +133,6 @@ const AssessmentPage: React.FC = () => {
         options={tartarLevelOptions}
         value={oralCondition.tartarLevel}
         onChange={handleTartarChange}
-        required
       />
 
       <ConditionCard
@@ -169,6 +159,12 @@ const AssessmentPage: React.FC = () => {
           onChange={(e) => handleFirstTimeChange(e.detail.value)}
           color="#00A896"
         />
+      </View>
+
+      <View className={styles.hintCard}>
+        <Text className={styles.hintText}>
+          💡 即使没有牙石，如有色素沉着、牙龈出血或初次洁牙，也可以生成相应的护理建议
+        </Text>
       </View>
 
       <View className={styles.bottomActionBar}>

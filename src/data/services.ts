@@ -37,6 +37,15 @@ export const serviceItems: ServiceItem[] = [
     requiredForLevel: [],
     recommendedForLevel: [],
   },
+  {
+    id: 'observation',
+    name: '口腔观察',
+    description: '全口检查，记录口腔情况，建议定期复查',
+    basePrice: 0,
+    duration: 5,
+    requiredForLevel: ['none'],
+    recommendedForLevel: [],
+  },
 ];
 
 export const priceMultiplier = {

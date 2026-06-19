@@ -6,7 +6,8 @@ import { usePackage } from '../../store/PackageContext';
 import StepIndicator from '../../components/StepIndicator';
 import { speechTemplates } from '../../data/speechScripts';
 import { tartarLevelOptions, pigmentationLevelOptions, bleedingLevelOptions } from '../../data/oralConditions';
-import { formatPrice, formatDuration } from '../../utils/packageCalculator';
+import { formatPrice, formatDuration, formatDateTime } from '../../utils/packageCalculator';
+import { SendStatus, PlanRecord } from '../../types';
 import styles from './index.module.scss';
 
 const steps = [
@@ -17,8 +18,8 @@ const steps = [
 ];
 
 const sendOptions = [
-  { id: 'reception', name: '前台候诊屏', desc: '发送到前台电脑显示', icon: '🖥️' },
-  { id: 'patient', name: '患者手机', desc: '发送短信/微信给患者', icon: '📱' },
+  { id: 'reception' as const, name: '前台候诊屏', desc: '发送到前台电脑显示', icon: '🖥️' },
+  { id: 'patient' as const, name: '患者手机', desc: '发送方案摘要给患者', icon: '📱' },
 ];
 
 const ConfirmPage: React.FC = () => {
@@ -27,13 +28,20 @@ const ConfirmPage: React.FC = () => {
     oralCondition,
     packages,
     selectedPackage,
-    saveRecord,
+    createRecord,
+    sendToTarget,
+    retrySend,
+    getSendStatus,
+    getSendTime,
     setCurrentStep,
     resetAll,
   } = usePackage();
 
-  const [selectedSendTo, setSelectedSendTo] = useState<string[]>(['reception']);
+  const [selectedSendTo, setSelectedSendTo] = useState<('reception' | 'patient')[]>(['reception']);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showPatientSummary, setShowPatientSummary] = useState(false);
+  const [currentRecord, setCurrentRecord] = useState<PlanRecord | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   const conditionLabels = useMemo(() => {
     const labels: string[] = [];
@@ -71,7 +79,8 @@ const ConfirmPage: React.FC = () => {
     return currentPkg.services.filter(s => s.declined);
   }, [currentPkg]);
 
-  const toggleSendOption = (id: string) => {
+  const toggleSendOption = (id: 'reception' | 'patient') => {
+    if (currentRecord) return;
     setSelectedSendTo(prev => {
       if (prev.includes(id)) {
         return prev.filter(item => item !== id);
@@ -80,7 +89,27 @@ const ConfirmPage: React.FC = () => {
     });
   };
 
-  const handleSend = () => {
+  const getStatusText = (status: SendStatus): string => {
+    switch (status) {
+      case 'pending': return '待发送';
+      case 'sending': return '发送中...';
+      case 'success': return '已发送';
+      case 'failed': return '发送失败';
+      default: return '未知';
+    }
+  };
+
+  const getStatusColor = (status: SendStatus): string => {
+    switch (status) {
+      case 'pending': return '#86909c';
+      case 'sending': return '#028090';
+      case 'success': return '#00b42a';
+      case 'failed': return '#f53f3f';
+      default: return '#86909c';
+    }
+  };
+
+  const handleSend = async () => {
     if (selectedSendTo.length === 0) {
       Taro.showToast({
         title: '请至少选择一个发送对象',
@@ -90,24 +119,70 @@ const ConfirmPage: React.FC = () => {
       return;
     }
 
+    setIsSending(true);
+
     try {
-      const record = saveRecord(selectedSendTo as ('reception' | 'patient')[]);
-      console.log('[Confirm] Record saved:', record);
-      
+      const record = createRecord();
+      setCurrentRecord(record);
+
+      const sendPromises = selectedSendTo.map(target => 
+        sendToTarget(record.id, target)
+      );
+
+      const results = await Promise.all(sendPromises);
+      const allSuccess = results.every(r => r);
+
       setCurrentStep(4);
-      setShowSuccess(true);
+      
+      if (allSuccess) {
+        setShowSuccess(true);
+      }
     } catch (error) {
-      console.error('[Confirm] Save record failed:', error);
+      console.error('[Confirm] Send failed:', error);
       Taro.showToast({
-        title: '保存失败，请重试',
+        title: '发送失败，请重试',
         icon: 'none',
         duration: 2000,
       });
+    } finally {
+      setIsSending(false);
     }
+  };
+
+  const handleRetry = async (target: 'reception' | 'patient') => {
+    if (!currentRecord) return;
+
+    try {
+      const success = await retrySend(currentRecord.id, target);
+      if (success) {
+        Taro.showToast({
+          title: '重发成功',
+          icon: 'success',
+          duration: 1500,
+        });
+      } else {
+        Taro.showToast({
+          title: '重发失败，请稍后再试',
+          icon: 'none',
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.error('[Confirm] Retry failed:', error);
+    }
+  };
+
+  const handlePreviewPatientSummary = () => {
+    setShowPatientSummary(true);
+  };
+
+  const handleClosePatientSummary = () => {
+    setShowPatientSummary(false);
   };
 
   const handleSuccessClose = () => {
     setShowSuccess(false);
+    setCurrentRecord(null);
     resetAll();
     Taro.switchTab({
       url: '/pages/assessment/index',
@@ -115,6 +190,22 @@ const ConfirmPage: React.FC = () => {
   };
 
   const handleBack = () => {
+    if (currentRecord) {
+      Taro.showModal({
+        title: '确认返回',
+        content: '当前方案已创建记录，返回将不保留未完成的发送状态。是否继续？',
+        success: (res) => {
+          if (res.confirm) {
+            setCurrentRecord(null);
+            setCurrentStep(2);
+            Taro.switchTab({
+              url: '/pages/package/index',
+            });
+          }
+        },
+      });
+      return;
+    }
     setCurrentStep(2);
     Taro.switchTab({
       url: '/pages/package/index',
@@ -213,6 +304,9 @@ const ConfirmPage: React.FC = () => {
                 <Text className={styles.serviceDeclinedLabel}>已告知未选择</Text>
               </Text>
               <Text className={styles.serviceDesc}>原因：{service.declinedReason}</Text>
+              {service.declinedAt && (
+                <Text className={styles.serviceTime}>记录时间：{formatDateTime(service.declinedAt)}</Text>
+              )}
             </View>
             <Text className={classnames(styles.servicePrice, styles.servicePriceInactive)}>
               {formatPrice(service.price)}
@@ -237,45 +331,104 @@ const ConfirmPage: React.FC = () => {
       </View>
 
       <View className={styles.sendOptions}>
-        <Text className={styles.sendOptionsTitle}>发送到</Text>
-        {sendOptions.map((option) => (
-          <View
-            key={option.id}
-            className={styles.sendOptionItem}
-            onClick={() => toggleSendOption(option.id)}
-          >
-            <View className={styles.sendOptionLeft}>
-              <Text className={styles.sendOptionIcon}>{option.icon}</Text>
-              <View className={styles.sendOptionInfo}>
-                <Text className={styles.sendOptionName}>{option.name}</Text>
-                <Text className={styles.sendOptionDesc}>{option.desc}</Text>
+        <View className={styles.sendOptionsHeader}>
+          <Text className={styles.sendOptionsTitle}>发送到</Text>
+          {!currentRecord && patientInfo.phone && (
+            <Text className={styles.previewLink} onClick={handlePreviewPatientSummary}>
+              👁️ 预览患者端摘要
+            </Text>
+          )}
+        </View>
+        {sendOptions.map((option) => {
+          const status = currentRecord ? getSendStatus(currentRecord, option.id) : 'pending' as SendStatus;
+          const sendTime = currentRecord ? getSendTime(currentRecord, option.id) : '';
+          const isSelected = selectedSendTo.includes(option.id);
+          const isDisabled = !!currentRecord;
+
+          return (
+            <View
+              key={option.id}
+              className={classnames(styles.sendOptionItem, {
+                [styles.sendOptionDisabled]: isDisabled,
+              })}
+              onClick={() => !isDisabled && toggleSendOption(option.id)}
+            >
+              <View className={styles.sendOptionLeft}>
+                <Text className={styles.sendOptionIcon}>{option.icon}</Text>
+                <View className={styles.sendOptionInfo}>
+                  <Text className={styles.sendOptionName}>{option.name}</Text>
+                  <Text className={styles.sendOptionDesc}>{option.desc}</Text>
+                  {sendTime && (
+                    <Text className={styles.sendTime}>发送时间：{sendTime}</Text>
+                  )}
+                  {status === 'failed' && currentRecord && (
+                    <Text className={styles.sendFailedReason}>
+                      失败原因：{currentRecord.sendRecords[option.id].failedReason}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              <View className={styles.sendOptionRight}>
+                {isDisabled ? (
+                  <View className={styles.sendStatusContainer}>
+                    <Text 
+                      className={styles.sendStatus}
+                      style={{ color: getStatusColor(status) }}
+                    >
+                      {status === 'sending' ? '⏳ ' : status === 'success' ? '✓ ' : status === 'failed' ? '✕ ' : ''}
+                      {getStatusText(status)}
+                    </Text>
+                    {status === 'failed' && (
+                      <Text 
+                        className={styles.retryBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRetry(option.id);
+                        }}
+                      >
+                        重试
+                      </Text>
+                    )}
+                  </View>
+                ) : (
+                  <View
+                    className={classnames(styles.checkbox, {
+                      [styles.checkboxChecked]: isSelected,
+                    })}
+                  >
+                    {isSelected && (
+                      <Text className={styles.checkIcon}>✓</Text>
+                    )}
+                  </View>
+                )}
               </View>
             </View>
-            <View
-              className={classnames(styles.checkbox, {
-                [styles.checkboxChecked]: selectedSendTo.includes(option.id),
-              })}
-            >
-              {selectedSendTo.includes(option.id) && (
-                <Text className={styles.checkIcon}>✓</Text>
-              )}
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       <View className={styles.bottomActionBar}>
         <View className={styles.actionButtons}>
-          <Button
-            className={styles.sendBtn}
-            disabled={selectedSendTo.length === 0}
-            onClick={handleSend}
-          >
-            <Text className={styles.btnText}>确认并发送</Text>
-          </Button>
+          {!currentRecord ? (
+            <Button
+              className={styles.sendBtn}
+              disabled={selectedSendTo.length === 0 || isSending}
+              loading={isSending}
+              onClick={handleSend}
+            >
+              <Text className={styles.btnText}>{isSending ? '发送中...' : '确认并发送'}</Text>
+            </Button>
+          ) : (
+            <Button
+              className={styles.sendBtn}
+              onClick={handleSuccessClose}
+            >
+              <Text className={styles.btnText}>完成，新建下一位</Text>
+            </Button>
+          )}
         </View>
         <Button className={styles.backBtn} onClick={handleBack}>
-          返回修改套餐
+          {currentRecord ? '取消本次方案' : '返回修改套餐'}
         </Button>
       </View>
 
@@ -294,6 +447,79 @@ const ConfirmPage: React.FC = () => {
             <Button className={styles.successBtn} onClick={handleSuccessClose}>
               <Text className={styles.btnText}>完成，新建下一位</Text>
             </Button>
+          </View>
+        </View>
+      )}
+
+      {showPatientSummary && currentPkg && (
+        <View className={styles.summaryOverlay} onClick={handleClosePatientSummary}>
+          <View className={styles.summaryModal} onClick={(e) => e.stopPropagation()}>
+            <View className={styles.summaryModalHeader}>
+              <Text className={styles.summaryModalTitle}>📱 患者端方案摘要</Text>
+              <Text className={styles.summaryModalClose} onClick={handleClosePatientSummary}>✕</Text>
+            </View>
+            <View className={styles.patientSummaryCard}>
+              <View className={styles.patientSummaryHeader}>
+                <Text className={styles.patientSummaryClinic}>🦷 悦齿口腔诊所</Text>
+                <Text className={styles.patientSummaryDate}>{new Date().toLocaleDateString()}</Text>
+              </View>
+              
+              <View className={styles.patientSummarySection}>
+                <Text className={styles.patientSummaryName}>{patientInfo.name || '尊敬的患者'} 您好：</Text>
+                <Text className={styles.patientSummaryPackage}>
+                  您选择的 <Text className={styles.patientSummaryPackageName}>{currentPkg.name}</Text>
+                </Text>
+              </View>
+
+              <View className={styles.patientSummaryDivider} />
+
+              <View className={styles.patientSummarySection}>
+                <Text className={styles.patientSummarySectionTitle}>📋 治疗项目</Text>
+                {selectedServices.map((s, i) => (
+                  <View key={i} className={styles.patientSummaryItem}>
+                    <Text className={styles.patientSummaryItemName}>{s.serviceName}</Text>
+                    <Text className={styles.patientSummaryItemPrice}>{formatPrice(s.price)}</Text>
+                  </View>
+                ))}
+                {declinedServices.length > 0 && (
+                  <>
+                    <View className={styles.patientSummaryDividerSmall} />
+                    <Text className={styles.patientSummarySectionTitle}>📝 已告知未选择</Text>
+                    {declinedServices.map((s, i) => (
+                      <View key={i} className={styles.patientSummaryItemDeclined}>
+                        <Text className={styles.patientSummaryItemName}>{s.serviceName}</Text>
+                        <Text className={styles.patientSummaryItemDesc}>{s.declinedReason}</Text>
+                      </View>
+                    ))}
+                  </>
+                )}
+              </View>
+
+              <View className={styles.patientSummaryDivider} />
+
+              <View className={styles.patientSummaryTotal}>
+                <Text className={styles.patientSummaryTotalLabel}>预计总费用</Text>
+                <Text className={styles.patientSummaryTotalPrice}>{formatPrice(currentPkg.totalPrice)}</Text>
+              </View>
+              <View className={styles.patientSummaryTotal}>
+                <Text className={styles.patientSummaryTotalLabel}>预计用时</Text>
+                <Text className={styles.patientSummaryTotalValue}>{formatDuration(currentPkg.totalDuration)}</Text>
+              </View>
+
+              <View className={styles.patientSummaryDivider} />
+
+              <View className={styles.patientSummarySection}>
+                <Text className={styles.patientSummarySectionTitle}>⚠️ 术后注意事项</Text>
+                {speechTemplates.postCare.slice(0, 3).map((item, i) => (
+                  <Text key={i} className={styles.patientSummaryNote}>• {item}</Text>
+                ))}
+              </View>
+
+              <View className={styles.patientSummaryFooter}>
+                <Text className={styles.patientSummaryDoctor}>主治医师：张医生</Text>
+                <Text className={styles.patientSummaryContact}>咨询电话：400-888-8888</Text>
+              </View>
+            </View>
           </View>
         </View>
       )}

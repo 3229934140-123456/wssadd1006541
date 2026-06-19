@@ -22,6 +22,66 @@
   color: $color-text-tertiary;
 }
 
+.searchBox {
+  display: flex;
+  align-items: center;
+  background: $color-bg-card;
+  border-radius: $radius-button;
+  padding: 0 $spacing-lg;
+  height: 88rpx;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
+  gap: $spacing-sm;
+}
+
+.searchIcon {
+  font-size: $font-size-lg;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  height: 100%;
+}
+
+.searchClear {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+  padding: $spacing-sm;
+  flex-shrink: 0;
+}
+
+.searchResultHint {
+  background: rgba(0, 168, 150, 0.08);
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.searchResultText {
+  font-size: $font-size-sm;
+  color: $color-primary;
+}
+
+.sendIconItem {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  font-size: $font-size-sm;
+}
+
+.sendIconChar {
+  font-size: $font-size-md;
+}
+
+.sendIconStatus {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+}
+
 .statsCard {
   background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
   border-radius: $radius-lg;

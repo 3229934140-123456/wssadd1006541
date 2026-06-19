@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, Button } from '@tarojs/components';
+import { View, Text, Button, Input } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
 import { usePackage } from '../../store/PackageContext';
-import { PlanRecord } from '../../types';
+import { PlanRecord, SendStatus } from '../../types';
 import { formatPrice, formatDuration } from '../../utils/packageCalculator';
 import styles from './index.module.scss';
 
@@ -22,7 +22,12 @@ const filterOptions = [
 ];
 
 const HistoryPage: React.FC = () => {
-  const { historyRecords } = usePackage();
+  const { 
+    historyRecords, 
+    filteredRecords: searchFilteredRecords, 
+    searchKeyword, 
+    setSearchKeyword 
+  } = usePackage();
   const [activeFilter, setActiveFilter] = useState('all');
 
   const stats = useMemo(() => {
@@ -40,7 +45,7 @@ const HistoryPage: React.FC = () => {
   }, [historyRecords]);
 
   const filteredRecords = useMemo(() => {
-    let records = [...historyRecords];
+    let records = [...searchFilteredRecords];
     
     if (activeFilter === 'today') {
       const today = new Date().toISOString().split('T')[0];
@@ -54,7 +59,25 @@ const HistoryPage: React.FC = () => {
     }
     
     return records;
-  }, [historyRecords, activeFilter]);
+  }, [searchFilteredRecords, activeFilter]);
+
+  const getSendStatusIcon = (status: SendStatus): string => {
+    switch (status) {
+      case 'success': return '✓';
+      case 'failed': return '✕';
+      case 'sending': return '⏳';
+      default: return '○';
+    }
+  };
+
+  const getSendStatusColor = (status: SendStatus): string => {
+    switch (status) {
+      case 'success': return '#00b42a';
+      case 'failed': return '#f53f3f';
+      case 'sending': return '#028090';
+      default: return '#86909c';
+    }
+  };
 
   const handleRecordClick = (record: PlanRecord) => {
     console.log('[History] Record clicked:', record.id);
@@ -69,12 +92,38 @@ const HistoryPage: React.FC = () => {
     });
   };
 
+  const handleClearSearch = () => {
+    setSearchKeyword('');
+  };
+
   return (
     <View className={styles.pageContainer}>
       <View className={styles.pageHeader}>
         <Text className={styles.pageTitle}>历史记录</Text>
         <Text className={styles.pageSubtitle}>查看过往患者方案和沟通记录</Text>
       </View>
+
+      <View className={styles.searchBox}>
+        <Text className={styles.searchIcon}>🔍</Text>
+        <Input
+          className={styles.searchInput}
+          placeholder="搜索患者姓名或电话"
+          value={searchKeyword}
+          onInput={(e) => setSearchKeyword(e.detail.value)}
+          confirmType="search"
+        />
+        {searchKeyword && (
+          <Text className={styles.searchClear} onClick={handleClearSearch}>✕</Text>
+        )}
+      </View>
+
+      {searchKeyword && (
+        <View className={styles.searchResultHint}>
+          <Text className={styles.searchResultText}>
+            搜索 "{searchKeyword}" 找到 {filteredRecords.length} 条记录
+          </Text>
+        </View>
+      )}
 
       <View className={styles.statsCard}>
         <View className={styles.statsRow}>
@@ -112,18 +161,29 @@ const HistoryPage: React.FC = () => {
           <Text className={styles.emptyIcon}>📋</Text>
           <Text className={styles.emptyTitle}>暂无记录</Text>
           <Text className={styles.emptyDesc}>
-            {activeFilter === 'all' 
-              ? '还没有创建过方案记录，快去创建第一个吧' 
-              : '当前筛选条件下暂无记录'}
+            {searchKeyword 
+              ? '没有找到匹配的患者记录' 
+              : activeFilter === 'all' 
+                ? '还没有创建过方案记录，快去创建第一个吧' 
+                : '当前筛选条件下暂无记录'}
           </Text>
-          <Button className={styles.emptyBtn} onClick={handleGoToAssessment}>
-            <Text className={styles.btnText}>去创建方案</Text>
-          </Button>
+          {searchKeyword ? (
+            <Button className={styles.emptyBtn} onClick={handleClearSearch}>
+              <Text className={styles.btnText}>清除搜索</Text>
+            </Button>
+          ) : (
+            <Button className={styles.emptyBtn} onClick={handleGoToAssessment}>
+              <Text className={styles.btnText}>去创建方案</Text>
+            </Button>
+          )}
         </View>
       ) : (
         <View className={styles.recordList}>
           {filteredRecords.map((record) => {
             const status = statusMap[record.status];
+            const receptionStatus = record.sendRecords?.reception?.status || 'pending';
+            const patientStatus = record.sendRecords?.patient?.status || 'pending';
+            
             return (
               <View
                 key={record.id}
@@ -155,12 +215,20 @@ const HistoryPage: React.FC = () => {
                       </Text>
                     </View>
                     <View className={styles.sendIcons}>
-                      {record.sentTo?.includes('reception') && (
-                        <Text className={styles.sendIcon}>🖥️</Text>
-                      )}
-                      {record.sentTo?.includes('patient') && (
-                        <Text className={styles.sendIcon}>📱</Text>
-                      )}
+                      <View 
+                        className={styles.sendIconItem}
+                        style={{ color: getSendStatusColor(receptionStatus) }}
+                      >
+                        <Text className={styles.sendIconChar}>🖥️</Text>
+                        <Text className={styles.sendIconStatus}>{getSendStatusIcon(receptionStatus)}</Text>
+                      </View>
+                      <View 
+                        className={styles.sendIconItem}
+                        style={{ color: getSendStatusColor(patientStatus) }}
+                      >
+                        <Text className={styles.sendIconChar}>📱</Text>
+                        <Text className={styles.sendIconStatus}>{getSendStatusIcon(patientStatus)}</Text>
+                      </View>
                     </View>
                   </View>
                   <View className={styles.priceInfo}>
