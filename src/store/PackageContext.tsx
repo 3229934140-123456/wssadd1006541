@@ -41,7 +41,7 @@ interface PackageContextType {
   filteredRecords: PlanRecord[];
   searchKeyword: string;
   setSearchKeyword: (keyword: string) => void;
-  createRecord: () => PlanRecord;
+  createRecord: (selectedTargets?: ('reception' | 'patient')[]) => PlanRecord;
   sendToTarget: (recordId: string, target: 'reception' | 'patient') => Promise<boolean>;
   retrySend: (recordId: string, target: 'reception' | 'patient') => Promise<boolean>;
   updateRecordStatus: (recordId: string, status: PlanRecord['status']) => void;
@@ -358,7 +358,7 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   }, [packages]);
 
-  const createRecord = useCallback((): PlanRecord => {
+  const createRecord = useCallback((selectedTargets?: ('reception' | 'patient')[]): PlanRecord => {
     if (!packages) {
       throw new Error('Packages not calculated');
     }
@@ -370,6 +370,12 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
       pkg,
       declinedServices
     );
+
+    const buildSendRecord = (target: 'reception' | 'patient'): SendRecord => ({
+      target,
+      status: selectedTargets?.includes(target) ? 'sending' : 'pending',
+      retryCount: 0,
+    });
 
     const record: PlanRecord = {
       id: generateId(),
@@ -383,13 +389,13 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
       createdAt: dayjs().format('YYYY-MM-DD HH:mm'),
       status: 'draft',
       sendRecords: {
-        reception: { ...defaultSendRecord, target: 'reception' },
-        patient: { ...defaultSendRecord, target: 'patient' },
+        reception: buildSendRecord('reception'),
+        patient: buildSendRecord('patient'),
       },
       patientSummary,
     };
 
-    console.log('[PackageContext] Creating record:', record);
+    console.log('[PackageContext] Creating record with targets:', selectedTargets, '→ sendRecords:', record.sendRecords);
     
     setHistoryRecords((prev) => [record, ...prev]);
     
@@ -442,10 +448,11 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (r.id !== recordId) return r;
       
       const currentSendRecord = r.sendRecords[target];
+      const now = new Date().toISOString();
       const newSendRecord: SendRecord = {
         ...currentSendRecord,
         status: result.success ? 'success' : 'failed',
-        sentAt: result.success ? new Date().toISOString() : undefined,
+        sentAt: now,
         failedReason: result.success ? undefined : result.reason,
         retryCount: result.success ? currentSendRecord.retryCount : currentSendRecord.retryCount + 1,
       };

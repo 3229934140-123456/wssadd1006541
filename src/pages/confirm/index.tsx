@@ -41,19 +41,35 @@ const ConfirmPage: React.FC = () => {
   const [selectedSendTo, setSelectedSendTo] = useState<('reception' | 'patient')[]>(['reception']);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPatientSummary, setShowPatientSummary] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<PlanRecord | null>(null);
+  const [currentRecordId, setCurrentRecordId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [retryingTarget, setRetryingTarget] = useState<'reception' | 'patient' | null>(null);
 
+  const currentRecord = useMemo(() => {
+    if (!currentRecordId) return null;
+    return historyRecords.find(r => r.id === currentRecordId) || null;
+  }, [currentRecordId, historyRecords]);
+
   useEffect(() => {
-    if (currentRecord) {
-      const latestRecord = historyRecords.find(r => r.id === currentRecord.id);
-      if (latestRecord && JSON.stringify(latestRecord.sendRecords) !== JSON.stringify(currentRecord.sendRecords)) {
-        console.log('[Confirm] Syncing latest record state:', latestRecord.sendRecords);
-        setCurrentRecord(latestRecord);
+    if (!currentRecord || !isSending) return;
+
+    const allTargets = selectedSendTo;
+    const allDone = allTargets.every(t => {
+      const status = currentRecord.sendRecords[t].status;
+      return status === 'success' || status === 'failed';
+    });
+
+    if (allDone) {
+      console.log('[Confirm] All sends completed:', currentRecord.sendRecords);
+      setIsSending(false);
+      const allSuccess = allTargets.every(t => 
+        currentRecord.sendRecords[t].status === 'success'
+      );
+      if (allSuccess) {
+        setShowSuccess(true);
       }
     }
-  }, [historyRecords, currentRecord]);
+  }, [currentRecord, isSending, selectedSendTo]);
 
   const conditionLabels = useMemo(() => {
     const labels: string[] = [];
@@ -132,46 +148,25 @@ const ConfirmPage: React.FC = () => {
     }
 
     setIsSending(true);
+    setShowSuccess(false);
 
     try {
-      const record = createRecord();
-      setCurrentRecord(record);
+      const record = createRecord(selectedSendTo);
+      setCurrentRecordId(record.id);
       setCurrentStep(4);
 
       console.log('[Confirm] Record created, starting async sends to:', selectedSendTo);
+      console.log('[Confirm] Initial sendRecords:', record.sendRecords);
 
       selectedSendTo.forEach(async (target) => {
         try {
-          await sendToTarget(record.id, target);
+          console.log(`[Confirm] Sending to ${target}...`);
+          const result = await sendToTarget(record.id, target);
+          console.log(`[Confirm] Send to ${target} result:`, result);
         } catch (error) {
           console.error(`[Confirm] Failed to send to ${target}:`, error);
         }
       });
-
-      const checkAllComplete = setInterval(() => {
-        const latest = historyRecords.find(r => r.id === record.id);
-        if (latest) {
-          const allDone = selectedSendTo.every(t => 
-            latest.sendRecords[t].status === 'success' || 
-            latest.sendRecords[t].status === 'failed'
-          );
-          if (allDone) {
-            clearInterval(checkAllComplete);
-            setIsSending(false);
-            const allSuccess = selectedSendTo.every(t => 
-              latest.sendRecords[t].status === 'success'
-            );
-            if (allSuccess) {
-              setShowSuccess(true);
-            }
-          }
-        }
-      }, 500);
-
-      setTimeout(() => {
-        clearInterval(checkAllComplete);
-        setIsSending(false);
-      }, 10000);
 
     } catch (error) {
       console.error('[Confirm] Send failed:', error);

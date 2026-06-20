@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, Button } from '@tarojs/components';
 import { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
@@ -39,24 +39,12 @@ const DetailPage: React.FC = () => {
   } = usePackage();
   const [showSummary, setShowSummary] = useState(false);
   const [retryingTarget, setRetryingTarget] = useState<'reception' | 'patient' | null>(null);
-  const [record, setRecord] = useState<PlanRecord | undefined>();
 
   const recordId = router.params.id;
 
-  useEffect(() => {
-    const latestRecord = getRecordById(recordId || '');
-    setRecord(latestRecord);
-  }, [getRecordById, recordId]);
-
-  useEffect(() => {
-    if (record) {
-      const latestRecord = getRecordById(record.id);
-      if (latestRecord && JSON.stringify(latestRecord.sendRecords) !== JSON.stringify(record.sendRecords)) {
-        console.log('[Detail] Syncing latest record state:', latestRecord.sendRecords);
-        setRecord(latestRecord);
-      }
-    }
-  }, [historyRecords, getRecordById, record]);
+  const record = useMemo(() => {
+    return getRecordById(recordId || '');
+  }, [getRecordById, recordId, historyRecords]);
 
   const conditionLabels = useMemo(() => {
     if (!record) return [];
