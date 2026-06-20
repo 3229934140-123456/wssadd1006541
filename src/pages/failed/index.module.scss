@@ -1,0 +1,304 @@
+@use '@/styles/variables.scss' as *;
+
+.pageContainer {
+  min-height: 100vh;
+  background: $color-bg-page;
+  padding-bottom: calc(#{$spacing-lg} + env(safe-area-inset-bottom));
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md $spacing-lg;
+  background: $color-primary;
+}
+
+.headerLeft {
+  width: 80rpx;
+  flex-shrink: 0;
+}
+
+.backIcon {
+  font-size: 40rpx;
+  color: $color-text-white;
+  font-weight: $font-weight-bold;
+}
+
+.headerCenter {
+  flex: 1;
+  text-align: center;
+}
+
+.pageTitle {
+  display: block;
+  font-size: 36rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-white;
+  margin-bottom: 4rpx;
+}
+
+.pageSubtitle {
+  font-size: $font-size-xs;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.headerRight {
+  width: 120rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.batchRetry {
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-medium;
+  padding: $spacing-sm $spacing-md;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-button;
+}
+
+.batchRetryDisabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.tabBar {
+  display: flex;
+  background: $color-bg-card;
+  padding: $spacing-sm $spacing-md;
+  gap: $spacing-sm;
+  box-shadow: $shadow-card;
+}
+
+.tabItem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-light;
+  position: relative;
+  transition: all $transition-base;
+}
+
+.tabItemActive {
+  background: rgba(0, 168, 150, 0.1);
+  
+  .tabText {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.tabIcon {
+  font-size: $font-size-lg;
+}
+
+.tabText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  transition: color $transition-base;
+}
+
+.tabBadge {
+  position: absolute;
+  top: 8rpx;
+  right: 16rpx;
+  min-width: 36rpx;
+  height: 36rpx;
+  background: #f53f3f;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8rpx;
+}
+
+.tabBadgeText {
+  font-size: 20rpx;
+  color: $color-text-white;
+  font-weight: $font-weight-bold;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 160rpx $spacing-lg;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  margin-bottom: $spacing-lg;
+}
+
+.emptyTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.emptyDesc {
+  font-size: $font-size-md;
+  color: $color-text-tertiary;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.failedList {
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.failedCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  border-left: 6rpx solid #f53f3f;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1rpx solid $color-divider;
+}
+
+.patientInfo {
+  flex: 1;
+}
+
+.patientName {
+  display: block;
+  font-size: 36rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.patientPhone {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.retryBtn {
+  padding: $spacing-sm $spacing-lg;
+  background: $color-primary;
+  border-radius: $radius-button;
+  flex-shrink: 0;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.85;
+    transform: scale(0.96);
+  }
+}
+
+.retryBtnLoading {
+  opacity: 0.6;
+  pointer-events: none;
+  background: $color-text-tertiary;
+}
+
+.retryBtnText {
+  font-size: $font-size-sm;
+  color: $color-text-white;
+  font-weight: $font-weight-semibold;
+}
+
+.packageInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding: $spacing-md;
+  background: $color-bg-light;
+  border-radius: $radius-md;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.packageLeft {
+  flex: 1;
+}
+
+.packageTag {
+  display: inline-block;
+  font-size: $font-size-xs;
+  color: $color-text-white;
+  background: $color-primary;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+  margin-bottom: $spacing-xs;
+}
+
+.packageName {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.packagePrice {
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  color: $color-price;
+  flex-shrink: 0;
+}
+
+.failedInfo {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.failedRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-md;
+}
+
+.failedLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+}
+
+.failedReason {
+  font-size: $font-size-sm;
+  color: #f53f3f;
+  text-align: right;
+  flex: 1;
+  font-weight: $font-weight-medium;
+}
+
+.failedValue {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  text-align: right;
+}
+
+.cardFooter {
+  text-align: right;
+  padding-top: $spacing-md;
+  margin-top: $spacing-md;
+  border-top: 1rpx solid $color-divider;
+}
+
+.viewDetail {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}

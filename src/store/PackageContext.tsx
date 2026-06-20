@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import Taro from '@tarojs/taro';
 import {
   OralCondition,
@@ -10,6 +10,8 @@ import {
   SendStatus,
   SendRecord,
   PersistedState,
+  PatientAggregatedRecord,
+  FailedSendGroup,
 } from '../types';
 import { 
   calculatePackages, 
@@ -49,6 +51,11 @@ interface PackageContextType {
   getRecordById: (id: string) => PlanRecord | undefined;
   getSendStatus: (record: PlanRecord, target: 'reception' | 'patient') => SendStatus;
   getSendTime: (record: PlanRecord, target: 'reception' | 'patient') => string;
+  patientAggregatedRecords: PatientAggregatedRecord[];
+  failedSendRecords: FailedSendGroup;
+  followupSearchKeyword: string;
+  setFollowupSearchKeyword: (keyword: string) => void;
+  filteredPatientRecords: PatientAggregatedRecord[];
 }
 
 const defaultOralCondition: OralCondition = {
@@ -94,6 +101,7 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [historyRecords, setHistoryRecords] = useState<PlanRecord[]>([]);
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [followupSearchKeyword, setFollowupSearchKeyword] = useState<string>('');
 
   useEffect(() => {
     const saved = loadFromStorage();
@@ -137,6 +145,97 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
     const phone = record.patientInfo.phone || '';
     return name.includes(keyword) || phone.includes(keyword);
   });
+
+  const patientAggregatedRecords = useMemo((): PatientAggregatedRecord[] => {
+    const grouped = new Map<string, PlanRecord[]>();
+    
+    historyRecords.forEach(record => {
+      const key = `${record.patientInfo.name || '未命名'}-${record.patientInfo.phone || '无电话'}`;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(record);
+    });
+
+    const result: PatientAggregatedRecord[] = [];
+    grouped.forEach((records, key) => {
+      const sorted = [...records].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      const latest = sorted[0];
+      const allDeclined: PackageService[] = [];
+      sorted.forEach(r => {
+        const pkg = r.packages[r.selectedPackage];
+        pkg.services.forEach(s => {
+          if (s.declined && !allDeclined.find(d => d.serviceId === s.serviceId)) {
+            allDeclined.push(s);
+          }
+        });
+      });
+
+      result.push({
+        patientName: latest.patientInfo.name || '未命名',
+        patientPhone: latest.patientInfo.phone || '无电话',
+        latestRecord: latest,
+        recordCount: records.length,
+        declinedServices: allDeclined,
+        lastVisitDate: latest.createdAt,
+        sendStatus: {
+          reception: latest.sendRecords?.reception?.status || 'pending',
+          patient: latest.sendRecords?.patient?.status || 'pending',
+        },
+      });
+    });
+
+    return result.sort((a, b) => 
+      new Date(b.lastVisitDate).getTime() - new Date(a.lastVisitDate).getTime()
+    );
+  }, [historyRecords]);
+
+  const filteredPatientRecords = useMemo((): PatientAggregatedRecord[] => {
+    if (!followupSearchKeyword.trim()) return patientAggregatedRecords;
+    const keyword = followupSearchKeyword.toLowerCase().trim();
+    return patientAggregatedRecords.filter(p => 
+      p.patientName.toLowerCase().includes(keyword) || 
+      p.patientPhone.includes(keyword)
+    );
+  }, [patientAggregatedRecords, followupSearchKeyword]);
+
+  const failedSendRecords = useMemo((): FailedSendGroup => {
+    const reception: FailedSendGroup['reception'] = [];
+    const patient: FailedSendGroup['patient'] = [];
+
+    historyRecords.forEach(record => {
+      if (record.sendRecords) {
+        if (record.sendRecords.reception?.status === 'failed') {
+          reception.push({
+            record,
+            target: 'reception',
+            failedReason: record.sendRecords.reception.failedReason || '未知原因',
+            retryCount: record.sendRecords.reception.retryCount,
+            lastFailedAt: record.sendRecords.reception.sentAt || record.createdAt,
+          });
+        }
+        if (record.sendRecords.patient?.status === 'failed') {
+          patient.push({
+            record,
+            target: 'patient',
+            failedReason: record.sendRecords.patient.failedReason || '未知原因',
+            retryCount: record.sendRecords.patient.retryCount,
+            lastFailedAt: record.sendRecords.patient.sentAt || record.createdAt,
+          });
+        }
+      }
+    });
+
+    const sortByTime = (a: any, b: any) => 
+      new Date(b.lastFailedAt).getTime() - new Date(a.lastFailedAt).getTime();
+
+    return {
+      reception: reception.sort(sortByTime),
+      patient: patient.sort(sortByTime),
+    };
+  }, [historyRecords]);
 
   const handleCalculatePackages = useCallback((): boolean => {
     if (!isValidCondition(oralCondition)) {
@@ -440,6 +539,11 @@ export const PackageProvider: React.FC<{ children: ReactNode }> = ({ children })
         getRecordById,
         getSendStatus,
         getSendTime,
+        patientAggregatedRecords,
+        failedSendRecords,
+        followupSearchKeyword,
+        setFollowupSearchKeyword,
+        filteredPatientRecords,
       }}
     >
       {children}

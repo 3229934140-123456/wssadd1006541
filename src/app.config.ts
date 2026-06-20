@@ -4,7 +4,9 @@ export default defineAppConfig({
     'pages/package/index',
     'pages/confirm/index',
     'pages/history/index',
-    'pages/detail/index'
+    'pages/detail/index',
+    'pages/followup/index',
+    'pages/failed/index'
   ],
   window: {
     backgroundTextStyle: 'light',

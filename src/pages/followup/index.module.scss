@@ -2,30 +2,32 @@
 
 .pageContainer {
   min-height: 100vh;
-  padding: $spacing-lg $page-padding calc($spacing-xl + 120rpx);
-  box-sizing: border-box;
+  background: $color-bg-page;
+  padding: $spacing-lg;
+  padding-bottom: calc(#{$spacing-lg} + env(safe-area-inset-bottom));
 }
 
 .pageHeader {
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.pageHeaderTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .pageTitle {
-  font-size: $font-size-xxl;
+  display: block;
+  font-size: 52rpx;
   font-weight: $font-weight-bold;
   color: $color-text-primary;
-  margin-bottom: $spacing-sm;
+  margin-bottom: $spacing-xs;
 }
 
 .pageSubtitle {
   font-size: $font-size-sm;
   color: $color-text-tertiary;
-}
-
-.pageHeaderRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
 }
 
 .failedEntry {
@@ -45,40 +47,6 @@
   font-size: $font-size-sm;
   color: #f53f3f;
   font-weight: $font-weight-medium;
-}
-
-.viewTabs {
-  display: flex;
-  background: $color-bg-card;
-  border-radius: $radius-button;
-  padding: $spacing-xs;
-  margin-bottom: $spacing-md;
-  gap: $spacing-xs;
-}
-
-.viewTabItem {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: $spacing-md;
-  border-radius: $radius-button;
-  transition: all $transition-base;
-}
-
-.viewTabItemActive {
-  background: $color-primary;
-  
-  .viewTabText {
-    color: $color-text-white;
-    font-weight: $font-weight-semibold;
-  }
-}
-
-.viewTabText {
-  font-size: $font-size-md;
-  color: $color-text-secondary;
-  transition: color $transition-base;
 }
 
 .searchBox {
@@ -125,28 +93,12 @@
   color: $color-primary;
 }
 
-.sendIconItem {
-  display: flex;
-  align-items: center;
-  gap: 4rpx;
-  font-size: $font-size-sm;
-}
-
-.sendIconChar {
-  font-size: $font-size-md;
-}
-
-.sendIconStatus {
-  font-size: $font-size-sm;
-  font-weight: $font-weight-bold;
-}
-
 .statsCard {
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  background: $color-bg-card;
   border-radius: $radius-lg;
   padding: $spacing-lg;
-  margin-bottom: $spacing-lg;
-  color: $color-text-white;
+  margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
 }
 
 .statsRow {
@@ -155,196 +107,20 @@
 }
 
 .statItem {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
 }
 
 .statValue {
   font-size: 48rpx;
   font-weight: $font-weight-bold;
+  color: $color-primary;
   margin-bottom: $spacing-xs;
 }
 
 .statLabel {
-  font-size: $font-size-sm;
-  opacity: 0.9;
-}
-
-.filterBar {
-  display: flex;
-  gap: $spacing-sm;
-  margin-bottom: $spacing-lg;
-  overflow-x: auto;
-  padding-bottom: $spacing-sm;
-}
-
-.filterItem {
-  padding: $spacing-sm $spacing-lg;
-  background: $color-bg-card;
-  border-radius: $radius-button;
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
-  white-space: nowrap;
-  transition: all $transition-base;
-  box-shadow: $shadow-card;
-
-  &:active {
-    transform: scale(0.96);
-  }
-}
-
-.filterItemActive {
-  background: $color-primary;
-  color: $color-text-white;
-}
-
-.recordList {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-}
-
-.recordCard {
-  background: $color-bg-card;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  box-shadow: $shadow-card;
-  transition: all $transition-base;
-
-  &:active {
-    transform: scale(0.99);
-    box-shadow: $shadow-card-hover;
-  }
-}
-
-.recordHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: $spacing-md;
-}
-
-.patientInfo {
-  flex: 1;
-}
-
-.patientName {
-  font-size: $font-size-lg;
-  font-weight: $font-weight-semibold;
-  color: $color-text-primary;
-  margin-bottom: 4rpx;
-}
-
-.patientPhone {
-  font-size: $font-size-sm;
-  color: $color-text-tertiary;
-}
-
-.statusBadge {
-  padding: 4rpx 16rpx;
-  border-radius: $radius-sm;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-medium;
-}
-
-.statusDraft {
-  background: rgba(134, 144, 156, 0.15);
-  color: $color-text-tertiary;
-}
-
-.statusSent {
-  background: rgba(22, 93, 255, 0.15);
-  color: $color-info;
-}
-
-.statusConfirmed {
-  background: rgba(0, 180, 42, 0.15);
-  color: $color-success;
-}
-
-.statusCompleted {
-  background: rgba(0, 168, 150, 0.15);
-  color: $color-primary;
-}
-
-.recordBody {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: $spacing-md 0;
-  border-top: 1rpx solid $color-divider;
-  border-bottom: 1rpx solid $color-divider;
-}
-
-.packageInfo {
-  flex: 1;
-}
-
-.packageName {
-  font-size: $font-size-md;
-  color: $color-text-primary;
-  font-weight: $font-weight-medium;
-  margin-bottom: 4rpx;
-}
-
-.packageType {
-  display: inline-block;
-  padding: 2rpx 12rpx;
-  background: rgba(0, 168, 150, 0.1);
-  color: $color-primary;
-  font-size: $font-size-xs;
-  border-radius: $radius-xs;
-  margin-right: $spacing-sm;
-}
-
-.sendIcons {
-  display: inline-flex;
-  gap: $spacing-xs;
-}
-
-.sendIcon {
-  font-size: $font-size-sm;
-  opacity: 0.6;
-}
-
-.priceInfo {
-  text-align: right;
-}
-
-.priceValue {
-  font-size: $font-size-xl;
-  font-weight: $font-weight-bold;
-  color: $color-price;
-}
-
-.durationValue {
-  font-size: $font-size-sm;
-  color: $color-text-tertiary;
-}
-
-.recordFooter {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: $spacing-md;
-}
-
-.declinedInfo {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-  flex: 1;
-}
-
-.declinedIcon {
-  font-size: $font-size-md;
-}
-
-.declinedText {
-  font-size: $font-size-xs;
-  color: $color-declined-text;
-}
-
-.recordTime {
   font-size: $font-size-xs;
   color: $color-text-tertiary;
 }
@@ -354,8 +130,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: $spacing-xl * 2 $spacing-lg;
-  text-align: center;
+  padding: 120rpx 0;
 }
 
 .emptyIcon {
@@ -364,7 +139,7 @@
 }
 
 .emptyTitle {
-  font-size: $font-size-lg;
+  font-size: $font-size-xl;
   font-weight: $font-weight-semibold;
   color: $color-text-primary;
   margin-bottom: $spacing-sm;
@@ -373,27 +148,8 @@
 .emptyDesc {
   font-size: $font-size-md;
   color: $color-text-tertiary;
-  margin-bottom: $spacing-xl;
-}
-
-.emptyBtn {
-  @include button-reset;
-  height: $button-height-lg;
-  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
-  color: $color-text-white;
-  font-size: $font-size-md;
-  font-weight: $font-weight-semibold;
-  border-radius: $radius-button;
-  padding: 0 $spacing-xl;
-
-  &:active {
-    opacity: 0.9;
-    transform: scale(0.98);
-  }
-}
-
-.btnText {
-  color: $color-text-white;
+  text-align: center;
+  line-height: 1.6;
 }
 
 .patientList {
@@ -424,7 +180,7 @@
   border-bottom: 1rpx solid $color-divider;
 }
 
-.patientCardInfo {
+.patientInfo {
   flex: 1;
 }
 
@@ -478,6 +234,10 @@
   margin-bottom: $spacing-md;
 }
 
+.packageInfo {
+  flex: 1;
+}
+
 .packageTag {
   display: inline-block;
   font-size: $font-size-xs;
@@ -488,9 +248,28 @@
   margin-bottom: $spacing-xs;
 }
 
+.packageName {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
 .packagePrice {
   text-align: right;
   flex-shrink: 0;
+}
+
+.priceValue {
+  display: block;
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  color: $color-price;
+  margin-bottom: 4rpx;
+}
+
+.durationValue {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
 }
 
 .declinedSection {
@@ -500,12 +279,21 @@
   margin-bottom: $spacing-md;
 }
 
+.declinedHeader {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+}
+
+.declinedIcon {
+  font-size: $font-size-md;
+}
+
 .declinedTitle {
-  display: block;
   font-size: $font-size-sm;
   color: $color-declined-text;
   font-weight: $font-weight-medium;
-  margin-bottom: $spacing-sm;
 }
 
 .declinedList {
@@ -515,8 +303,19 @@
 }
 
 .declinedItem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
   font-size: $font-size-xs;
   color: $color-declined-text;
+}
+
+.declinedItemName {
+  font-weight: $font-weight-medium;
+}
+
+.declinedItemReason {
+  opacity: 0.9;
 }
 
 .declinedMore {

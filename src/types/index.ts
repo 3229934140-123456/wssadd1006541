@@ -127,10 +127,36 @@ export interface PersistedState {
   currentDraft: {
     patientInfo: PatientInfo;
     oralCondition: OralCondition;
-    packages: { basic: Package; premium: Package } | null;
+    packages: { basic: Package; premium: Package };
     selectedPackage: PackageType;
     currentStep: number;
   } | null;
+}
+
+export interface PatientAggregatedRecord {
+  patientName: string;
+  patientPhone: string;
+  latestRecord: PlanRecord;
+  recordCount: number;
+  declinedServices: PackageService[];
+  lastVisitDate: string;
+  sendStatus: {
+    reception: SendStatus;
+    patient: SendStatus;
+  };
+}
+
+export interface FailedSendItem {
+  record: PlanRecord;
+  target: 'reception' | 'patient';
+  failedReason: string;
+  retryCount: number;
+  lastFailedAt: string;
+}
+
+export interface FailedSendGroup {
+  reception: FailedSendItem[];
+  patient: FailedSendItem[];
 }
 
 // 步骤

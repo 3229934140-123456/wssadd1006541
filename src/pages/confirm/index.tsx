@@ -136,19 +136,43 @@ const ConfirmPage: React.FC = () => {
     try {
       const record = createRecord();
       setCurrentRecord(record);
-
-      const sendPromises = selectedSendTo.map(target => 
-        sendToTarget(record.id, target)
-      );
-
-      const results = await Promise.all(sendPromises);
-      const allSuccess = results.every(r => r);
-
       setCurrentStep(4);
-      
-      if (allSuccess) {
-        setShowSuccess(true);
-      }
+
+      console.log('[Confirm] Record created, starting async sends to:', selectedSendTo);
+
+      selectedSendTo.forEach(async (target) => {
+        try {
+          await sendToTarget(record.id, target);
+        } catch (error) {
+          console.error(`[Confirm] Failed to send to ${target}:`, error);
+        }
+      });
+
+      const checkAllComplete = setInterval(() => {
+        const latest = historyRecords.find(r => r.id === record.id);
+        if (latest) {
+          const allDone = selectedSendTo.every(t => 
+            latest.sendRecords[t].status === 'success' || 
+            latest.sendRecords[t].status === 'failed'
+          );
+          if (allDone) {
+            clearInterval(checkAllComplete);
+            setIsSending(false);
+            const allSuccess = selectedSendTo.every(t => 
+              latest.sendRecords[t].status === 'success'
+            );
+            if (allSuccess) {
+              setShowSuccess(true);
+            }
+          }
+        }
+      }, 500);
+
+      setTimeout(() => {
+        clearInterval(checkAllComplete);
+        setIsSending(false);
+      }, 10000);
+
     } catch (error) {
       console.error('[Confirm] Send failed:', error);
       Taro.showToast({
@@ -156,7 +180,6 @@ const ConfirmPage: React.FC = () => {
         icon: 'none',
         duration: 2000,
       });
-    } finally {
       setIsSending(false);
     }
   };
