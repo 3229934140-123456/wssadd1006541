@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, Button } from '@tarojs/components';
 import { useRouter } from '@tarojs/taro';
 import classnames from 'classnames';
@@ -6,7 +6,7 @@ import { usePackage } from '../../store/PackageContext';
 import { speechTemplates } from '../../data/speechScripts';
 import { tartarLevelOptions, pigmentationLevelOptions, bleedingLevelOptions } from '../../data/oralConditions';
 import { formatPrice, formatDuration, formatDateTime } from '../../utils/packageCalculator';
-import { SendStatus } from '../../types';
+import { SendStatus, PlanRecord } from '../../types';
 import styles from './index.module.scss';
 
 const statusMap = {
@@ -39,12 +39,24 @@ const DetailPage: React.FC = () => {
   } = usePackage();
   const [showSummary, setShowSummary] = useState(false);
   const [retryingTarget, setRetryingTarget] = useState<'reception' | 'patient' | null>(null);
+  const [record, setRecord] = useState<PlanRecord | undefined>();
 
   const recordId = router.params.id;
 
-  const record = useMemo(() => {
-    return getRecordById(recordId || '');
+  useEffect(() => {
+    const latestRecord = getRecordById(recordId || '');
+    setRecord(latestRecord);
   }, [getRecordById, recordId]);
+
+  useEffect(() => {
+    if (record) {
+      const latestRecord = getRecordById(record.id);
+      if (latestRecord && JSON.stringify(latestRecord.sendRecords) !== JSON.stringify(record.sendRecords)) {
+        console.log('[Detail] Syncing latest record state:', latestRecord.sendRecords);
+        setRecord(latestRecord);
+      }
+    }
+  }, [historyRecords, getRecordById, record]);
 
   const conditionLabels = useMemo(() => {
     if (!record) return [];
@@ -84,15 +96,43 @@ const DetailPage: React.FC = () => {
   }, [selectedPkg]);
 
   const handleRetry = async (target: 'reception' | 'patient') => {
-    if (!record) return;
+    if (!record) {
+      Taro.showToast({ title: '记录不存在', icon: 'none' });
+      return;
+    }
+    if (retryingTarget !== null) {
+      return;
+    }
+    
+    const targetName = target === 'reception' ? '前台候诊屏' : '患者手机';
     setRetryingTarget(target);
+    
     try {
+      console.log('[Detail] Retrying send to:', target);
       const success = await retrySend(record.id, target);
+      
       if (success) {
-        Taro.showToast({ title: '重发成功', icon: 'success' });
+        console.log('[Detail] Retry succeeded for:', target);
+        Taro.showToast({ 
+          title: `${targetName}重发成功`, 
+          icon: 'success',
+          duration: 2000
+        });
       } else {
-        Taro.showToast({ title: '重发失败，请稍后再试', icon: 'none' });
+        console.log('[Detail] Retry failed for:', target);
+        Taro.showToast({ 
+          title: `${targetName}重发失败，请稍后再试`, 
+          icon: 'none',
+          duration: 2500
+        });
       }
+    } catch (error) {
+      console.error('[Detail] Retry error:', error);
+      Taro.showToast({ 
+        title: '重发出错，请稍后再试', 
+        icon: 'none',
+        duration: 2500
+      });
     } finally {
       setRetryingTarget(null);
     }

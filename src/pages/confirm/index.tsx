@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, Button } from '@tarojs/components';
 import Taro from '@tarojs/taro';
 import classnames from 'classnames';
@@ -35,6 +35,7 @@ const ConfirmPage: React.FC = () => {
     getSendTime,
     setCurrentStep,
     resetAll,
+    historyRecords,
   } = usePackage();
 
   const [selectedSendTo, setSelectedSendTo] = useState<('reception' | 'patient')[]>(['reception']);
@@ -42,6 +43,17 @@ const ConfirmPage: React.FC = () => {
   const [showPatientSummary, setShowPatientSummary] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<PlanRecord | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [retryingTarget, setRetryingTarget] = useState<'reception' | 'patient' | null>(null);
+
+  useEffect(() => {
+    if (currentRecord) {
+      const latestRecord = historyRecords.find(r => r.id === currentRecord.id);
+      if (latestRecord && JSON.stringify(latestRecord.sendRecords) !== JSON.stringify(currentRecord.sendRecords)) {
+        console.log('[Confirm] Syncing latest record state:', latestRecord.sendRecords);
+        setCurrentRecord(latestRecord);
+      }
+    }
+  }, [historyRecords, currentRecord]);
 
   const conditionLabels = useMemo(() => {
     const labels: string[] = [];
@@ -150,25 +162,45 @@ const ConfirmPage: React.FC = () => {
   };
 
   const handleRetry = async (target: 'reception' | 'patient') => {
-    if (!currentRecord) return;
+    if (!currentRecord) {
+      Taro.showToast({ title: '记录不存在', icon: 'none' });
+      return;
+    }
+    if (retryingTarget !== null) {
+      return;
+    }
+
+    const targetName = target === 'reception' ? '前台候诊屏' : '患者手机';
+    setRetryingTarget(target);
 
     try {
+      console.log('[Confirm] Retrying send to:', target);
       const success = await retrySend(currentRecord.id, target);
+      
       if (success) {
+        console.log('[Confirm] Retry succeeded for:', target);
         Taro.showToast({
-          title: '重发成功',
+          title: `${targetName}重发成功`,
           icon: 'success',
-          duration: 1500,
+          duration: 2000,
         });
       } else {
+        console.log('[Confirm] Retry failed for:', target);
         Taro.showToast({
-          title: '重发失败，请稍后再试',
+          title: `${targetName}重发失败，请稍后再试`,
           icon: 'none',
-          duration: 2000,
+          duration: 2500,
         });
       }
     } catch (error) {
-      console.error('[Confirm] Retry failed:', error);
+      console.error('[Confirm] Retry error:', error);
+      Taro.showToast({
+        title: '重发出错，请稍后再试',
+        icon: 'none',
+        duration: 2500,
+      });
+    } finally {
+      setRetryingTarget(null);
     }
   };
 
@@ -378,15 +410,15 @@ const ConfirmPage: React.FC = () => {
                       {status === 'sending' ? '⏳ ' : status === 'success' ? '✓ ' : status === 'failed' ? '✕ ' : ''}
                       {getStatusText(status)}
                     </Text>
-                    {status === 'failed' && (
+                    {(status === 'failed' || status === 'pending') && (
                       <Text 
-                        className={styles.retryBtn}
+                        className={classnames(styles.retryBtn, retryingTarget === option.id && styles.retryBtnLoading)}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRetry(option.id);
                         }}
                       >
-                        重试
+                        {retryingTarget === option.id ? '发送中...' : status === 'failed' ? '重试' : '发送'}
                       </Text>
                     )}
                   </View>

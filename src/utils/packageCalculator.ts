@@ -33,12 +33,7 @@ const calculateServiceDuration = (
 };
 
 export const isValidCondition = (condition: OralCondition): boolean => {
-  const { tartarLevel, pigmentationLevel, bleedingLevel, isFirstTime } = condition;
-  if (tartarLevel !== 'none') return true;
-  if (pigmentationLevel !== 'none') return true;
-  if (bleedingLevel !== 'none') return true;
-  if (isFirstTime) return true;
-  return false;
+  return true;
 };
 
 export const calculatePackages = (condition: OralCondition): { basic: Package; premium: Package } => {
